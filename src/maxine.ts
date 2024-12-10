@@ -193,4 +193,5 @@ const suffix = `
 }
 `;
 
-writeFile('./sample/complete.css', jsdelivrCss);
+writeFile('./fonts/complete-jsdelivr.css', jsdelivrCss + suffix);
+writeFile('./fonts/complete.css', ghPagesCss + suffix);
