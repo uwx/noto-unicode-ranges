@@ -1,32 +1,5 @@
-# Unicode Range
+# Noto Unicode Ranges
 
-Generate CSS unicode-range from a font file.
+Generates a CSS file with @font-faces for all Noto fonts + Nerd Font Symbols Only, so you can have Noto with all supported languages in your webpage.
 
-You can find the app at [unicode-range.ooooo.page](https://unicode-range.ooooo.page).
-
-## Command line usage
-
-1. Install [bun](https://bun.sh/docs/installation).
-
-2. Install the project:
-
-    ```shell
-    $ bun i
-    ```
-
-3. Run the executable and follow the help:
-
-    ```shell
-    $ ./unicode-range --help
-
-    Usage: unicode-range [options] <path>
-
-    Generate the CSS property unicode-range from a TTF, OTF or WOFF font.
-
-    Arguments:
-      path              path to a TTF, OTF or WOFF file
-
-    Options:
-      --exclude <path>  exclude glyphs from another TTF, OTF or WOFF file
-      -h, --help        display help for command
-    ```
+This script is not designed for public use and will probably need to be modified for your use. See https://uwx.github.io/noto-unicode-ranges/ for an example of the result.
