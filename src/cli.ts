@@ -13,7 +13,7 @@ function nodeBufferToArrayBuffer(buffer: Buffer): ArrayBuffer {
 }
 
 async function readCodesFromFontFile(path: string): Promise<Set<number>> {
-    const font = parse(nodeBufferToArrayBuffer(await readFile(path)));
+    const font = parse(new Uint8Array(await readFile(path)).buffer);
     return getCodes(font);
 }
 
