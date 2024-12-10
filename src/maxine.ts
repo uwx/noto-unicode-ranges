@@ -33,17 +33,10 @@ async function* getFiles() {
             
             const relpath = relative(root, fullpath).replace(/\\/g, '/');
             const url = getGithackUrl('notofonts/notofonts.github.io', 'noto-monthly-release-2024.12.01', `fonts/${relpath}`);
-
-            if (!await exists(join('./fonts', basename(fullpath)))) {
-                await copyFile(
-                    fullpath,
-                    join('./fonts', basename(fullpath)),
-                );
-            }
         
             yield [
                 fullpath,
-                url
+                url,
             ] as const;
         }
     }
@@ -52,14 +45,7 @@ async function* getFiles() {
     yield [
         nfPath,
         getGithackUrl('ryanoasis/nerd-fonts', 'master', 'patched-fonts/NerdFontsSymbolsOnly/SymbolsNerdFont-Regular.ttf'),
-        'https://uwx.github.io/noto-unicode-ranges/fonts/'
-    ];
-    if (!await exists(join('./fonts', basename(nfPath)))) {
-        await copyFile(
-            nfPath,
-            join('./fonts', basename(nfPath)),
-        );
-    }
+    ] as const;
 
 }
 
@@ -110,7 +96,8 @@ const fonts = new Map(files.map(([file, url]) => {
 
 const notoSansRegularCodes = await readCodesFromFontFile(fonts.get('NotoSans-Regular')!.file);
 
-let css = '';
+let jsdelivrCss = '';
+let ghPagesCss = '';
 for (const [fontName, { fontFamily, fontVariant, file, url }] of fonts.entries()) {
     // console.log(fontName);
 
@@ -131,12 +118,19 @@ for (const [fontName, { fontFamily, fontVariant, file, url }] of fonts.entries()
         console.warn(`No codes: ${fontName}`);
         continue;
     }
-
-    const ranges = codesToUnicodeRange(codes);
+    
+    if (!await exists(join('./fonts', basename(file)))) {
+        await copyFile(
+            file,
+            join('./fonts', basename(file)),
+        );
+    }
 
     fontFamilies.add(fontFamily);
 
-    css += `
+    const ranges = codesToUnicodeRange(codes);
+
+    jsdelivrCss += `
 @font-face {
     font-family: "${fontFamily}";
     src: url("${url}") format("truetype");
@@ -145,9 +139,19 @@ for (const [fontName, { fontFamily, fontVariant, file, url }] of fonts.entries()
     font-style: ${italic ? 'italic' : 'normal'};
 }
 `;
+
+    ghPagesCss += `
+@font-face {
+    font-family: "${fontFamily}";
+    src: url("http://uwx.github.io/noto-and-nerd-fonts/${fontName}.ttf") format("truetype");
+    unicode-range: ${ranges};
+    font-weight: ${weightMapping ? weightMappings[weightMapping] : 'normal'};
+    font-style: ${italic ? 'italic' : 'normal'};
+}
+`;
 }
 
-css += `
+const suffix = `
 .font-sans {
     font-family:
         /* Noto Sans */
@@ -189,4 +193,4 @@ css += `
 }
 `;
 
-writeFile('./sample/complete.css', css);
+writeFile('./sample/complete.css', jsdelivrCss);
