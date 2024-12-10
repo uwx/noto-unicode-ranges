@@ -143,7 +143,7 @@ for (const [fontName, { fontFamily, fontVariant, file, url }] of fonts.entries()
     ghPagesCss += `
 @font-face {
     font-family: "${fontFamily}";
-    src: url("http://uwx.github.io/noto-and-nerd-fonts/${fontName}.ttf") format("truetype");
+    src: url("https://uwx.github.io/noto-and-nerd-fonts/${fontName}.ttf") format("truetype");
     unicode-range: ${ranges};
     font-weight: ${weightMapping ? weightMappings[weightMapping] : 'normal'};
     font-style: ${italic ? 'italic' : 'normal'};
