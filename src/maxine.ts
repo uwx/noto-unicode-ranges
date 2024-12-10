@@ -13,7 +13,7 @@ async function readCodesFromFontFile(path: string): Promise<Set<number>> {
 const root = join(homedir(), 'Documents/GitHub/notofonts.github.io/fonts');
 
 function getGithackUrl(repo: string, branch: string, path: string) {
-    return `https://rawcdn.githack.com/${repo}/refs/heads/${branch}/fonts/${path}`;
+    return `https://cdn.jsdelivr.net/gh/${repo}@${branch}/${path}`;
 }
 
 async function* getFiles() {
@@ -23,11 +23,13 @@ async function* getFiles() {
         });
 
         for (const f of globbed) {
-            const relpath = relative(root, file).replace(/\\/g, '/');
-            const url = getGithackUrl('notofonts/notofonts.github.io', 'main', `fonnts/${relpath}`);
+            const fullpath = join(root, file, 'googlefonts/ttf', f);
+            
+            const relpath = relative(root, fullpath).replace(/\\/g, '/');
+            const url = getGithackUrl('notofonts/notofonts.github.io', 'main', `fonts/${relpath}`);
         
             yield [
-                join(root, file, 'googlefonts/ttf', f),
+                fullpath,
                 url
             ] as const;
         }
@@ -104,19 +106,41 @@ for await (const [file, url] of getFiles()) {
 css += `
 .font-sans {
     font-family:
-        "Noto Sans",
+        /* Noto Sans */
         ${[...fontFamilies]
-            .filter(font => !font.startsWith('Noto Serif'))
+            .filter(font => font.startsWith('Noto Sans'))
             .map(font => `"${font}"`).join(',\n        ')},
+        /* Noto Extra */
+        "Noto Naskh Arabic UI",
+        "Noto Nastaliq Urdu",
+        "Noto Rashi Hebrew",
+        "Noto Fangsong KSS Rotated",
+        "Noto Fangsong KSS Vertical",
+        "Noto Kufi Arabic",
+        "Noto Music",
+        "Noto Naskh Arabic",
+        /* NF */
+        "Symbols Nerd Font",
         sans-serif;
 }
 
 .font-serif {
     font-family:
-        "Noto Serif",
+        /* Noto Serif */
         ${[...fontFamilies]
-            .filter(font => !font.startsWith('Noto Sans'))
+            .filter(font => font.startsWith('Noto Serif'))
             .map(font => `"${font}"`).join(',\n        ')},
+        /* Noto Extra */
+        "Noto Naskh Arabic UI",
+        "Noto Nastaliq Urdu",
+        "Noto Rashi Hebrew",
+        "Noto Fangsong KSS Rotated",
+        "Noto Fangsong KSS Vertical",
+        "Noto Kufi Arabic",
+        "Noto Music",
+        "Noto Naskh Arabic",
+        /* NF */
+        "Symbols Nerd Font",
         serif;
 }
 `;
