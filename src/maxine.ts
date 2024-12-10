@@ -1,4 +1,4 @@
-import { readdir, readFile, writeFile } from "node:fs/promises";
+import { access, copyFile, mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { parse } from "opentype.js";
 import { codesToUnicodeRange, getCodes } from "./lib";
 import { glob } from 'tinyglobby';
@@ -16,6 +16,12 @@ function getGithackUrl(repo: string, branch: string, path: string) {
     return `https://cdn.jsdelivr.net/gh/${repo}@${branch}/${path}`;
 }
 
+await mkdir('./fonts', { recursive: true });
+
+function exists(path: string): Promise<boolean> {
+    return new Promise(resolve => access(path).then(() => resolve(true)).catch(() => resolve(false)));
+}
+
 async function* getFiles() {
     for (const file of await readdir(root)) {
         const globbed = await glob('*.ttf', {
@@ -26,7 +32,14 @@ async function* getFiles() {
             const fullpath = join(root, file, 'googlefonts/ttf', f);
             
             const relpath = relative(root, fullpath).replace(/\\/g, '/');
-            const url = getGithackUrl('notofonts/notofonts.github.io', 'main', `fonts/${relpath}`);
+            const url = getGithackUrl('notofonts/notofonts.github.io', 'noto-monthly-release-2024.12.01', `fonts/${relpath}`);
+
+            if (!await exists(join('./fonts', basename(fullpath)))) {
+                await copyFile(
+                    fullpath,
+                    join('./fonts', basename(fullpath)),
+                );
+            }
         
             yield [
                 fullpath,
@@ -35,10 +48,19 @@ async function* getFiles() {
         }
     }
 
+    const nfPath = join(homedir(), 'Downloads/NerdFontsSymbolsOnly/SymbolsNerdFont-Regular.ttf');
     yield [
-        join(homedir(), 'Downloads/NerdFontsSymbolsOnly/SymbolsNerdFont-Regular.ttf'),
-        getGithackUrl('ryanoasis/nerd-fonts', 'master', 'patched-fonts/NerdFontsSymbolsOnly/SymbolsNerdFont-Regular.ttf')
+        nfPath,
+        getGithackUrl('ryanoasis/nerd-fonts', 'master', 'patched-fonts/NerdFontsSymbolsOnly/SymbolsNerdFont-Regular.ttf'),
+        'https://uwx.github.io/noto-unicode-ranges/fonts/'
     ];
+    if (!await exists(join('./fonts', basename(nfPath)))) {
+        await copyFile(
+            nfPath,
+            join('./fonts', basename(nfPath)),
+        );
+    }
+
 }
 
 const weightMappings = {
@@ -47,10 +69,10 @@ const weightMappings = {
     SemiBold: '600',
     Thin: '100',
     Black: '900',
-    Bold: 'bold',
-    Light: 'light',
+    Bold: '700',
+    Light: '300',
     Medium: '500',
-    Regular: 'normal',
+    Regular: '400',
 };
 
 const widthMappings = [
@@ -75,12 +97,23 @@ function camelPad(str: string){
         .trim();
 }
 
-let css = '';
-for await (const [file, url] of getFiles()) {
+const files = await Array.fromAsync(getFiles());
+
+const fonts = new Map(files.map(([file, url]) => {
     const fontName = basename(file, extname(file));
 
     const fontFamily = camelPad(fontName.slice(0, fontName.lastIndexOf('-')));
     const fontVariant = fontName.slice(fontName.lastIndexOf('-') + 1);
+
+    return [fontName, { fontFamily, fontVariant, file, url }]
+}));
+
+const notoSansRegularCodes = await readCodesFromFontFile(fonts.get('NotoSans-Regular')!.file);
+
+let css = '';
+for (const [fontName, { fontFamily, fontVariant, file, url }] of fonts.entries()) {
+    // console.log(fontName);
+
     const weightMapping = (Object.keys(weightMappings)
         .find(mapping => fontVariant.includes(mapping))) as keyof typeof weightMappings;
     const italic = fontVariant.includes('Italic');
@@ -88,7 +121,18 @@ for await (const [file, url] of getFiles()) {
         continue; // idk waht to do with these
     }
 
-    const ranges = codesToUnicodeRange(await readCodesFromFontFile(file));
+    let codes = await readCodesFromFontFile(file);
+    
+    if (fontFamily !== 'Noto Sans' && fontFamily !== 'Noto Serif') {
+        codes = codes.difference(notoSansRegularCodes);
+    }
+
+    if (codes.size === 0) {
+        console.warn(`No codes: ${fontName}`);
+        continue;
+    }
+
+    const ranges = codesToUnicodeRange(codes);
 
     fontFamilies.add(fontFamily);
 
@@ -145,4 +189,4 @@ css += `
 }
 `;
 
-writeFile('./complete.css', css);
+writeFile('./sample/complete.css', css);
